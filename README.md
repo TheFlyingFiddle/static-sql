@@ -128,6 +128,7 @@ The DSL is currently a subset of SQL and not close to completion, what currently
 
 ###Not planned
 
+* SQL comments - They enable certain kinds of sql injections (with dynamic queries) and since it's an inline dsl i don't see any purpose of including them. 
 * From with multiple tables, this is sugar syntax around inner joins, and as I understand it not recomended usage. 
     - select * from table0, table1 ...
 * Other esoteric sql syntax sugar
