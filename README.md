@@ -114,6 +114,7 @@ The DSL is currently a subset of SQL and not close to completion, what currently
 
 ###Planned
 
+* Bettery syntax error messages 
 * Sub-Queries - Initialiy only as an alternative to joins. Further down the road general sub-queries will be implemented.
 * Aggregate functions - such as COUNT, AVG, MAX etc.
 * Group By - Will be implemented together with Aggregate functions
