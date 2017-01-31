@@ -118,7 +118,7 @@ The DSL is currently a subset of SQL and not close to completion, what currently
 * Aggregate functions - such as COUNT, AVG, MAX etc.
 * Group By - Will be implemented together with Aggregate functions
 * Having   - Will also be implemented together with Aggregate functions
-* Select with alias columns - Basically select user.id as user_id, items.id as item_id from ... 
+* Select with alias columns - Basically *select user.id as user_id, items.id as item_id from ...* 
 * Dynamic queries - These are compiled from a runtime string. They will be second class citicens since code generation cannot be performed at runtime. 
 * Insert Statments - (currently users must use mysql-lited directly for this)
 * Update Statments - (currently users must use mysql-lited directly for this)
