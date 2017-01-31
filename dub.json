@@ -1,0 +1,15 @@
+{
+	"name": "static-sql",
+	"authors": [
+		"Lukas Borin"
+	],
+	"dependencies" : {
+	  "pegged": "~>0.3.3"
+  	},
+	"description": "This repo contains a DLS for static sql queries. That is queries
+	that are parsed and compiled at compile time. This makes it possible to catch
+	sql error earlier in the development process, and assure that the database
+	is kept in sync with the D code using it.",
+	"copyright": "Copyright © 2017, Lukas Borin",
+	"license": "MIT"
+}
