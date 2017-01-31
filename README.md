@@ -5,6 +5,10 @@ The idea is to create a mysql database using annotated D structures along with a
 
 ##Usage
 ```D
+
+import sql.query;
+import sql.database;
+
 //First a database description has to be created.
 //The following code creates a database called "my_database" 
 //with 3 tables. users, products and purchases.
@@ -106,7 +110,30 @@ void main()
 ```
 
 ##Limitations
-Currently sub-queries and aggregate functions are not implemented. Additionaly queries can only be constructed at compiletime so no dynamic queries for now. If you want dynamic queries then this library is not for you. Direct usage of **mysql-lited** or similar is proboably a better fit in that case.
+The DSL is currently a subset of SQL and not close to completion, what currently works are simple *select*, *joins*, *where* and *orderby* clauses, with table aliases enabled. 
+
+###Planned
+
+* Sub-Queries - Initialiy only as an alternative to joins. Further down the road general sub-queries will be implemented.
+* Aggregate functions - such as COUNT, AVG, MAX etc.
+* Group By - Will be implemented together with Aggregate functions
+* Having   - Will also be implemented together with Aggregate functions
+* Select with alias columns - Basically select user.id as user_id, items.id as item_id from ... 
+* Dynamic queries - These are compiled from a runtime string. They will be second class citicens since code generation cannot be performed at runtime. 
+* Insert Statments - (currently users must use mysql-lited directly for this)
+* Update Statments - (currently users must use mysql-lited directly for this)
+* Delete Statments - (currently users must use mysql-lited directly for this)
+* Query Caching    - Semi-automatic caching on a query by query basis. Performing auto invalidation on Update/Inser/Delete statements from the same application. 
+
+###Not planned
+
+* From with multiple tables, this is sugar syntax around inner joins, and as I understand it not recomended usage. 
+    - select * from table0, table1 ...
+* Other esoteric sql syntax sugar
+
+
+##Dependencies 
+This library depends on [Pegged](https://github.com/PhilippeSigaud/Pegged/) to generate the sql parser and on [mysql-lited](https://github.com/eBookingServices/mysql-lited) as the database driver. 
 
 
 
