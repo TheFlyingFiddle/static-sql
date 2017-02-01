@@ -6,4 +6,5 @@ __dummy.html
 *.exe
 *.sln
 *.suo
+*.dll
 safe/
