@@ -1,10 +1,8 @@
-module sql.tests.database;
+module sql.test.database;
 
 version(unittest):
 
 import sql.attributes;
-import sql.query;
-
 alias URL = Varchar!(50);
 
 @Database("my_test_db")
