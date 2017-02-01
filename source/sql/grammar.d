@@ -12,6 +12,9 @@ SQL:
                                  HavingStmt?
                                  OrderByStmt?
                                  LimitStmt?)
+	UpdateStmt		< ("update"i TableExpr
+								 SetListExpr
+								 WhereStmt)
 
     FromStmt        < "from"i TableExpr (JoinStmt Spacing)*
     WhereStmt       < "where"i Condition
@@ -46,6 +49,9 @@ SQL:
     InputExpr       < :'{' identifier :'}'
     FuncExpr        < identifier '(' ColumnExpr (:"," ColumnExpr)* ')'
     AsExpr          < :"as"i identifier / StringField
+
+	SetListExpr		< "set"i SetExpr ("," SetExpr)*
+	SetExpr         < FieldExpr :"=" InputExpr
 
     TerneryOp       < "between"i
     BinaryOp        < "<=" / ">=" / "=" / "<" / ">" / "like"i
@@ -93,66 +99,7 @@ void findAll(string name, ParseTree tree, void delegate(ParseTree) cb)
         findAll(name, child, cb);
 }
 
-static this()
-{
-    asModule("sql.parser", "source/sql/parser", gram);
-}
-
 unittest
 {
-    template testSQL(string s)
-    {
-        import sql.parser;
-        //pragma(msg, s);
-        pragma(msg, SQL(s).matches);
-        void testSQL() { }
-    }
-
-
-    testSQL!("select feed.url, feed.title, feed.description
-              from feed
-              join user
-              on user.id = feed.user
-              where user.id = {user}");
-
-    testSQL!("SELECT * FROM TEST");
-    testSQL!("SELECT * FROM TEST ORDER BY NAME");
-    testSQL!("SELECT name, price FROM products");
-    testSQL!("SELECT name, price FROM products WHERE price = 1.0");
-    testSQL!("SELECT name, price FROM products WHERE name LIKE 'PEN'");
-    testSQL!("SELECT name, price FROM products WHERE price = 1.0 AND p = 0 AND p = 1");
-    testSQL!("SELECT name, quantity FROM products WHERE quantity <= 2000");
-    testSQL!("SELECT name, price FROM products WHERE productCode = 'PEN'");
-    testSQL!("SELECT * FROM products WHERE quantity >= 5000 AND price < 1.24 AND name LIKE 'Pen %'");
-    testSQL!("SELECT * FROM products WHERE NOT (quantity >= 5000 AND name LIKE 'Pen %')");
-    testSQL!("SELECT * FROM products WHERE name IN ('Pen Red', 'Pen Black')");
-    testSQL!("SELECT * FROM products
-                    WHERE (price BETWEEN 1.0 AND 2.0) AND (quantity BETWEEN 1000 AND 2000)");
-    testSQL!("SELECT * FROM products WHERE productCode IS NULL");
-    testSQL!("SELECT * FROM products WHERE productCode IS NOT NULL");
-    testSQL!("SELECT * FROM products WHERE name LIKE 'Pen %' ORDER BY price DESC");
-    testSQL!("SELECT * FROM products WHERE name LIKE 'Pen %' ORDER BY price DESC, quantity");
-    testSQL!("SELECT * FROM products ORDER BY RAND()");
-    testSQL!("SELECT * FROM products ORDER BY price LIMIT 2");
-    testSQL!("SELECT * FROM products ORDER BY price LIMIT 2, 1");
-    testSQL!("SELECT productID AS ID, productCode AS Code,
-                     name AS Description, price AS `Unit Price`
-                     FROM products
-                     ORDER BY ID");
-    testSQL!("SELECT CONCAT(productCode, ' - ', name) AS `Product Description`, price FROM products");
-    testSQL!("SELECT DISTINCT price, name FROM products");
-    testSQL!("SELECT * FROM products GROUP BY productCode");
-    testSQL!("SELECT productCode, COUNT(*) FROM products GROUP BY productCode");
-    testSQL!("SELECT productCode, COUNT(*) AS count
-                    FROM products
-                    GROUP BY productCode
-                    ORDER BY count DESC");
-    testSQL!("SELECT MAX(price), MIN(price), AVG(price), STD(price), SUM(quantity)
-                     FROM products");
-    testSQL!("SELECT
-                    productCode AS `Product Code`,
-                    COUNT(*) AS Count
-                    FROM products
-                    GROUP BY productCode
-                    HAVING Count >=3");
+    asModule("sql.parser", "source/sql/parser", gram);
 }

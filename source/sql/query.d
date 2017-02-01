@@ -1,6 +1,6 @@
 module sql.query;
-import sql.parser;
 import sql.grammar;
+import sql.parser;
 import sql.attributes;
 import std.typecons : Tuple;
 import std.format : format;
@@ -12,10 +12,129 @@ template SQLQuery(DB, string query)
 {
     //To cache construction of query objects.
     //mixin(Cache!("queries", makeQuery, DB, query);
-    //pragma(msg, SQL(query).toString);
     enum code = makeQuery!(DB)(query);
+    //pragma(msg, code);
     mixin(code);
     alias SQLQuery = Query;
+}
+
+template SQLUpdate(DB, string query)
+{
+	enum code = makeUpdate!(DB)(query);		 
+	pragma(msg, code);
+	mixin(code);
+	alias SQLUpdate = Update;
+}
+
+template Pack(T...)
+{
+	alias Unpack = T;
+}
+
+template SQLInsertOrUpdate(Table, members...)
+{
+	enum code = makeInsert!(Table, members)("insert ignore");
+	pragma(msg, code);
+	mixin(code);
+
+	alias SQLInsertOrUpdate = Input;
+}
+
+template SQLInsert(T...)
+{
+	enum code = makeInsert!(Pack!(T))("insert");
+	mixin(code);
+
+	alias SQLInsert = Insert;
+}
+
+
+auto update(SQLUpdate, Con)(SQLUpdate update, ref Con con)
+{
+	con.execute(update.sql_, update.tupleof);
+}
+
+auto insert(SQLInsert, Con)(SQLInsert insert, ref Con con)
+{
+	con.execute(insert.sql_, insert.tupleof);
+}
+
+auto query(SQLQuery, Con)(SQLQuery query, Con con)
+{
+	import mysql;
+    alias Res = SQLQuery.Result;
+    Res[] result;
+    con.execute(query.sql_, query.tupleof, (MySQLRow row)
+    {
+        Res res;
+        foreach(i, dummy; Res.init.tupleof)
+        {
+			enum name = __traits(identifier, Res.tupleof[i]);
+			alias type = typeof(dummy);
+            mixin("res." ~ name ~ " = row." ~ name ~ ".get!(" ~ type.stringof ~ ");");
+        }
+        result ~= res;
+    });
+
+    return result;
+}
+
+private auto makeInsert(Table, members...)(string kind)
+{
+	enum tableName = getTableName!(Table);
+
+	string fields = "";
+	foreach(mem; members)
+	{
+		auto t = Table.init;
+		alias field = Alias!(__traits(getMember, t, mem));
+		fields ~= "    " ~ typeof(field[0]).stringof ~ " ";
+		fields ~= mem ~ ";\n";
+	}
+
+	string sql()
+	{
+		string fields = "(";
+		string values = "(";
+		foreach(mem; members)
+		{
+			fields ~= mem ~ ",";
+			values ~= "?,";
+		}
+
+		fields = fields[0 .. $ - 1] ~ ")";
+		values = values[0 .. $ - 1] ~ ")";
+
+		return "\"" ~ kind ~ " " ~ tableName ~ fields ~ " values " ~ values ~ "\"";
+	}
+
+	return format("
+enum sql = %s;
+struct Input
+{
+   __gshared sql_ = sql;
+   %s;
+}
+", sql(), fields);
+}
+
+private auto makeUpdate(DB)(string query)
+{
+	auto ast = SQL.decimateTree(SQL.UpdateStmt(query));
+	assert(ast.successful, "Invalid SQL syntax!");
+	
+	auto c = extractUpdateContext!(DB)(ast);
+	auto sql = formatSQL(query);
+	auto inputs = formatInputs(c);
+
+	return format("
+enum sql = %s;
+struct Update
+{
+	__gshared sql_ = sql;
+%s
+}
+"		,sql, inputs); 
 }
 
 private auto makeQuery(DB)(string query)
@@ -27,7 +146,7 @@ private auto makeQuery(DB)(string query)
     //atm.
     assert(ast.successful, "Invalid SQL syntax!");
 
-    auto c = extractContext!(DB)(ast);
+    auto c = extractSelectContext!(DB)(ast);
     auto sql = formatSQL(query);
     auto inputs  = formatInputs(c);
     auto results = formatResults(c);
@@ -39,7 +158,11 @@ struct Query
 {
     __gshared sql_ = sql;
 %s
-    alias Result = Tuple!(%s);
+
+	struct Result
+	{
+		%s
+	}
 }
 "    , sql, inputs, results);
 }
@@ -59,7 +182,7 @@ private auto formatSQL(string query)
     return s ~ "\"";
 }
 
-private string formatInputs(Context c)
+private string formatInputs(C)(C c)
 {
     string s = "";
     foreach(i; c.inputs) {
@@ -68,20 +191,25 @@ private string formatInputs(Context c)
     return s;
 }
 
-private string formatResults(Context c)
+private string formatResults(C)(C c)
 {
     string s = "";
     foreach(i, sel; c.selected)
     {
         auto col = c.columns[sel.column];
-        s ~= col.type ~ ", \"" ~ col.id ~ "\"";
-        if(i != c.selected.length - 1)
-            s ~= ", ";
+        s ~= "    " ~ col.type ~ " " ~ col.id ~ ";\n";
     }
     return s;
 }
 
-private struct Context
+private struct UpdateContext
+{
+	TableID[] tables;
+	ColumnID[] columns;
+	Input[] inputs;
+}
+
+private struct SelectContext
 {
     TableID[]  tables;
     ColumnID[] columns;
@@ -113,22 +241,30 @@ private struct TableID
     string id;
 }
 
-private Context extractContext(DB)(ParseTree ast)
+private SelectContext extractSelectContext(DB)(ParseTree ast)
 {
-    Context c;
+    SelectContext c;
     extractTables!(DB)(ast, c);
     extractSelected(ast, c);
     extractInputs(ast, c);
     return c;
 }
 
-private void extractTables(DB)(ParseTree ast, ref Context c)
+private UpdateContext extractUpdateContext(DB)(ParseTree ast)
+{
+	UpdateContext c;
+	extractTables!(DB)(ast, c);
+	extractSet(ast, c);
+	return c;
+}
+
+private void extractTables(DB, C)(ParseTree ast, ref C c)
 {
     findAll("SQL.TableExpr", ast, (ParseTree tree)
     {
         TableID id;
         id.id = tree.matches[0];
-        if(tree.children.length == 1) {
+        if(tree.children.length == 2) {
             id.alias_ = tree.matches[1];
         } else {
             id.alias_ = id.id;
@@ -147,7 +283,7 @@ private void extractTables(DB)(ParseTree ast, ref Context c)
     }
 }
 
-private void extractColumns(Table)(int idx, ref Context c)
+private void extractColumns(Table, C)(int idx, ref C c)
 {
     foreach(i, dummy; Table.init.tupleof)
     {
@@ -158,7 +294,7 @@ private void extractColumns(Table)(int idx, ref Context c)
     }
 }
 
-private size_t fieldColumn(ParseTree field, ref Context c)
+private size_t fieldColumn(C)(ParseTree field, ref C c)
 {
     if(field.matches.length == 2)
     {
@@ -185,7 +321,7 @@ private size_t fieldColumn(ParseTree field, ref Context c)
     }
 }
 
-private void extractSelected(ParseTree ast, ref Context c)
+private void extractSelected(ParseTree ast, ref SelectContext c)
 {
     auto list = findFirst(ast, "SQL.ColumnListExpr");
     foreach(colNodeExp; list.children)
@@ -193,6 +329,9 @@ private void extractSelected(ParseTree ast, ref Context c)
 
         //Gotta skip columnExpr and get down to the inner node
         auto colExp = colNodeExp.children[0];
+		if(colExp.name == "Select.ColumnExpr")
+			colExp = colExp.children[0];
+
         switch(colExp.name)
         {
             case "SQL.AllExpr":
@@ -215,9 +354,46 @@ private void extractSelected(ParseTree ast, ref Context c)
     }
 }
 
-private void extractInputs(ParseTree ast, ref Context c)
+private void extractInputs(ParseTree ast, ref SelectContext c)
 {
     findAll("SQL.BinaryCondExpr", ast, (ParseTree tree)
+    {
+        auto left  = tree.children[0].children[0];
+        auto right = tree.children[2].children[0];
+
+        Input i;
+        if(left.name == "SQL.InputExpr")
+        {
+            assert(right.name == "SQL.FieldExpr", "SQL makes no sence");
+            i.id = left.matches[0];
+            i.type = c.columns[fieldColumn(right, c)].type;
+            c.inputs ~= i;
+        }
+        else if(right.name == "SQL.InputExpr")
+        {
+            assert(left.name == "SQL.FieldExpr", "SQL makes no sence");
+            i.id = right.matches[0];
+            i.type = c.columns[fieldColumn(left, c)].type;
+            c.inputs ~= i;
+        }
+    });
+}
+
+private void extractSet(ParseTree ast, ref UpdateContext c)
+{
+	findAll("SQL.SetExpr", ast,  (t)
+	{
+	   auto field  = t.children[0];	
+	   auto value  = t.children[1];
+	   auto column = c.columns[fieldColumn(field, c)];
+	   
+	   assert(field.name == "SQL.FieldExpr");
+	   assert(value.name == "SQL.InputExpr");
+		
+	   c.inputs ~= Input(column.type, value.matches[0]);
+	});
+
+	findAll("SQL.BinaryCondExpr", ast, (ParseTree tree)
     {
         auto left  = tree.children[0].children[0];
         auto right = tree.children[2].children[0];

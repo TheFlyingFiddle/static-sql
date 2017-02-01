@@ -11,6 +11,9 @@ SQL:
                                  HavingStmt?
                                  OrderByStmt?
                                  LimitStmt?)
+	UpdateStmt		< ("update"i TableExpr
+								 SetListExpr
+								 WhereStmt)
 
     FromStmt        < "from"i TableExpr (JoinStmt Spacing)*
     WhereStmt       < "where"i Condition
@@ -46,6 +49,9 @@ SQL:
     FuncExpr        < identifier '(' ColumnExpr (:"," ColumnExpr)* ')'
     AsExpr          < :"as"i identifier / StringField
 
+	SetListExpr		< "set"i SetExpr ("," SetExpr)*
+	SetExpr         < FieldExpr :"=" InputExpr
+
     TerneryOp       < "between"i
     BinaryOp        < "<=" / ">=" / "=" / "<" / ">" / "like"i
 
@@ -77,6 +83,7 @@ struct GenericSQL(TParseTree)
     static this()
     {
         rules["SelectStmt"] = toDelegate(&SelectStmt);
+        rules["UpdateStmt"] = toDelegate(&UpdateStmt);
         rules["FromStmt"] = toDelegate(&FromStmt);
         rules["WhereStmt"] = toDelegate(&WhereStmt);
         rules["GroupByStmt"] = toDelegate(&GroupByStmt);
@@ -106,6 +113,8 @@ struct GenericSQL(TParseTree)
         rules["InputExpr"] = toDelegate(&InputExpr);
         rules["FuncExpr"] = toDelegate(&FuncExpr);
         rules["AsExpr"] = toDelegate(&AsExpr);
+        rules["SetListExpr"] = toDelegate(&SetListExpr);
+        rules["SetExpr"] = toDelegate(&SetExpr);
         rules["TerneryOp"] = toDelegate(&TerneryOp);
         rules["BinaryOp"] = toDelegate(&BinaryOp);
         rules["Number"] = toDelegate(&Number);
@@ -203,6 +212,42 @@ struct GenericSQL(TParseTree)
     static string SelectStmt(GetName g)
     {
         return "SQL.SelectStmt";
+    }
+
+    static TParseTree UpdateStmt(TParseTree p)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("update"), Spacing), pegged.peg.wrapAround!(Spacing, TableExpr, Spacing), pegged.peg.wrapAround!(Spacing, SetListExpr, Spacing), pegged.peg.wrapAround!(Spacing, WhereStmt, Spacing)), Spacing), "SQL.UpdateStmt")(p);
+        }
+        else
+        {
+            if (auto m = tuple(`UpdateStmt`, p.end) in memo)
+                return *m;
+            else
+            {
+                TParseTree result = hooked!(pegged.peg.defined!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("update"), Spacing), pegged.peg.wrapAround!(Spacing, TableExpr, Spacing), pegged.peg.wrapAround!(Spacing, SetListExpr, Spacing), pegged.peg.wrapAround!(Spacing, WhereStmt, Spacing)), Spacing), "SQL.UpdateStmt"), "UpdateStmt")(p);
+                memo[tuple(`UpdateStmt`, p.end)] = result;
+                return result;
+            }
+        }
+    }
+
+    static TParseTree UpdateStmt(string s)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("update"), Spacing), pegged.peg.wrapAround!(Spacing, TableExpr, Spacing), pegged.peg.wrapAround!(Spacing, SetListExpr, Spacing), pegged.peg.wrapAround!(Spacing, WhereStmt, Spacing)), Spacing), "SQL.UpdateStmt")(TParseTree("", false,[], s));
+        }
+        else
+        {
+            forgetMemo();
+            return hooked!(pegged.peg.defined!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("update"), Spacing), pegged.peg.wrapAround!(Spacing, TableExpr, Spacing), pegged.peg.wrapAround!(Spacing, SetListExpr, Spacing), pegged.peg.wrapAround!(Spacing, WhereStmt, Spacing)), Spacing), "SQL.UpdateStmt"), "UpdateStmt")(TParseTree("", false,[], s));
+        }
+    }
+    static string UpdateStmt(GetName g)
+    {
+        return "SQL.UpdateStmt";
     }
 
     static TParseTree FromStmt(TParseTree p)
@@ -1247,6 +1292,78 @@ struct GenericSQL(TParseTree)
     static string AsExpr(GetName g)
     {
         return "SQL.AsExpr";
+    }
+
+    static TParseTree SetListExpr(TParseTree p)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("set"), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing), pegged.peg.zeroOrMore!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!(","), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing)), Spacing))), "SQL.SetListExpr")(p);
+        }
+        else
+        {
+            if (auto m = tuple(`SetListExpr`, p.end) in memo)
+                return *m;
+            else
+            {
+                TParseTree result = hooked!(pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("set"), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing), pegged.peg.zeroOrMore!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!(","), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing)), Spacing))), "SQL.SetListExpr"), "SetListExpr")(p);
+                memo[tuple(`SetListExpr`, p.end)] = result;
+                return result;
+            }
+        }
+    }
+
+    static TParseTree SetListExpr(string s)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("set"), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing), pegged.peg.zeroOrMore!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!(","), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing)), Spacing))), "SQL.SetListExpr")(TParseTree("", false,[], s));
+        }
+        else
+        {
+            forgetMemo();
+            return hooked!(pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.caseInsensitiveLiteral!("set"), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing), pegged.peg.zeroOrMore!(pegged.peg.wrapAround!(Spacing, pegged.peg.and!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!(","), Spacing), pegged.peg.wrapAround!(Spacing, SetExpr, Spacing)), Spacing))), "SQL.SetListExpr"), "SetListExpr")(TParseTree("", false,[], s));
+        }
+    }
+    static string SetListExpr(GetName g)
+    {
+        return "SQL.SetListExpr";
+    }
+
+    static TParseTree SetExpr(TParseTree p)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, FieldExpr, Spacing), pegged.peg.discard!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!("="), Spacing)), pegged.peg.wrapAround!(Spacing, InputExpr, Spacing)), "SQL.SetExpr")(p);
+        }
+        else
+        {
+            if (auto m = tuple(`SetExpr`, p.end) in memo)
+                return *m;
+            else
+            {
+                TParseTree result = hooked!(pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, FieldExpr, Spacing), pegged.peg.discard!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!("="), Spacing)), pegged.peg.wrapAround!(Spacing, InputExpr, Spacing)), "SQL.SetExpr"), "SetExpr")(p);
+                memo[tuple(`SetExpr`, p.end)] = result;
+                return result;
+            }
+        }
+    }
+
+    static TParseTree SetExpr(string s)
+    {
+        if(__ctfe)
+        {
+            return         pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, FieldExpr, Spacing), pegged.peg.discard!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!("="), Spacing)), pegged.peg.wrapAround!(Spacing, InputExpr, Spacing)), "SQL.SetExpr")(TParseTree("", false,[], s));
+        }
+        else
+        {
+            forgetMemo();
+            return hooked!(pegged.peg.defined!(pegged.peg.and!(pegged.peg.wrapAround!(Spacing, FieldExpr, Spacing), pegged.peg.discard!(pegged.peg.wrapAround!(Spacing, pegged.peg.literal!("="), Spacing)), pegged.peg.wrapAround!(Spacing, InputExpr, Spacing)), "SQL.SetExpr"), "SetExpr")(TParseTree("", false,[], s));
+        }
+    }
+    static string SetExpr(GetName g)
+    {
+        return "SQL.SetExpr";
     }
 
     static TParseTree TerneryOp(TParseTree p)
