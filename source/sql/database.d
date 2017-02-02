@@ -2,6 +2,8 @@ module sql.database;
 import std.datetime : DateTime;
 import sql.attributes;
 
+alias getDatabaseName = sql.attributes.getDatabaseName;
+
 private:
 
 template FullyUnqual(T)
@@ -42,17 +44,6 @@ template getSqlType(U)
         enum getSqlType = "BLOB";
     else static assert(0, T.stringof ~ " " ~  U.stringof);
 }
-
-template test(F)
-{
-    static if(is(F f == Varchar!(N), size_t N))
-    {
-        pragma(msg, F.stringof, " ", N);
-    }
-    alias test = void;
-}
-
-alias F = test!(FullyUnqual!(Varchar!50));
 
 //Possible Modifiers on columns.
 string getModifiers(T, size_t index)()

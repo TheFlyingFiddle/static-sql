@@ -139,6 +139,11 @@ enum NotNull;
 ///automatically get incremented when new rows are inserted.
 enum AutoIncrement;
 
+struct Length
+{
+	size_t length;
+}
+
 //Represents the type VARCHAR in sql
 //Adds length information of variable fields
 //to strings.
@@ -208,4 +213,9 @@ template getColumnName(alias T)
         enum getColumnName = getUDAs!(T, Column)[0].name;
     else
         enum getColumnName = T.stringof;
+}
+
+template getDatabaseName(T)
+{
+	enum getDatabaseName = getUDAs!(T, Database)[0].name;
 }

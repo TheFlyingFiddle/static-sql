@@ -20,8 +20,7 @@ template SQLQuery(DB, string query)
 
 template SQLUpdate(DB, string query)
 {
-	enum code = makeUpdate!(DB)(query);		 
-	pragma(msg, code);
+	enum code = makeUpdate!(DB)(query);	
 	mixin(code);
 	alias SQLUpdate = Update;
 }
@@ -34,7 +33,6 @@ template Pack(T...)
 template SQLInsertOrUpdate(Table, members...)
 {
 	enum code = makeInsert!(Table, members)("insert ignore");
-	pragma(msg, code);
 	mixin(code);
 
 	alias SQLInsertOrUpdate = Input;
@@ -88,7 +86,13 @@ private auto makeInsert(Table, members...)(string kind)
 	{
 		auto t = Table.init;
 		alias field = Alias!(__traits(getMember, t, mem));
-		fields ~= "    " ~ typeof(field[0]).stringof ~ " ";
+		alias typ  = typeof(field[0]);
+		static if(isInstanceOf!(Varchar, typ))
+			alias type = string;
+		else 
+			alias type = typ;
+
+		fields ~= "    " ~ type.stringof ~ " ";
 		fields ~= mem ~ ";\n";
 	}
 
@@ -288,9 +292,14 @@ private void extractColumns(Table, C)(int idx, ref C c)
     foreach(i, dummy; Table.init.tupleof)
     {
         alias field  = Alias!(Table.tupleof[i]);
-        enum colName = getColumnName!(field);
-        enum type    = typeof(field[0]).stringof;
-        c.columns ~= ColumnID(idx, type, colName);
+        alias type   = typeof(dummy);
+		enum colName = getColumnName!(field);
+		static if(isInstanceOf!(Varchar, type)) 
+			enum typeID = string.stringof;
+		else 
+			enum typeID = type.stringof;
+
+        c.columns ~= ColumnID(idx, typeID, colName);
     }
 }
 
