@@ -106,6 +106,17 @@ void main()
     
     //List of items user one has purchased. 
     auto userOneItems = itemQuery.query(conn);
+    
+    //The benefit of this module comes into play when
+    //there are errors in the sql query
+    auto itemQuery2 = SQLQuery!(MyDatabase, q{
+        select * from item
+        where item.id = {id}
+    });
+    //The database contains a table named "items" not 
+    //"item" so this will become a compile time error. 
+    //The alternative would be to get this error at 
+    //runtime. Which would not be ideal. 
 }
 ```
 
